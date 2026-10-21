@@ -1,0 +1,521 @@
+<title>AI Eye Doctor Dashboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&display=swap">
+<style>
+  /* Layout: single-column dashboard with metric cards, charts, and prediction grid */
+  :root {
+    --bg: #f8f7f5;
+    --surface: #ffffff;
+    --surface-alt: #f0efec;
+    --fg: #1a1a1a;
+    --fg-muted: #6b6560;
+    --accent: #2d6a4f;
+    --accent-light: #d8f3dc;
+    --warning: #e07a3a;
+    --danger: #c1292e;
+    --success: #2d6a4f;
+    --border: rgba(0,0,0,0.08);
+    --radius: 10px;
+    --font-display: 'Source Serif 4', Georgia, serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141210;
+      --surface: #1e1c19;
+      --surface-alt: #28261f;
+      --fg: #e8e4de;
+      --fg-muted: #9a958e;
+      --accent: #52b788;
+      --accent-light: #1b3a2a;
+      --warning: #e8985a;
+      --danger: #e05555;
+      --success: #52b788;
+      --border: rgba(255,255,255,0.08);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141210;
+    --surface: #1e1c19;
+    --surface-alt: #28261f;
+    --fg: #e8e4de;
+    --fg-muted: #9a958e;
+    --accent: #52b788;
+    --accent-light: #1b3a2a;
+    --warning: #e8985a;
+    --danger: #e05555;
+    --success: #52b788;
+    --border: rgba(255,255,255,0.08);
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 0;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  h1, h2, h3 { font-family: var(--font-display); }
+  header {
+    padding: 2.5rem 0 1.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+  }
+  header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem;
+    text-wrap: balance;
+  }
+  header p {
+    color: var(--fg-muted);
+    font-size: 0.875rem;
+    margin: 0;
+  }
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.125rem;
+  }
+  .metric-card .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fg-muted);
+    margin-bottom: 0.25rem;
+  }
+  .metric-card .value {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric-card .value.accent { color: var(--accent); }
+  section {
+    margin-bottom: 2rem;
+  }
+  section h2 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+  }
+  .chart-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    overflow-x: auto;
+  }
+  .bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 48px;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8125rem;
+  }
+  .bar-row .name {
+    text-align: right;
+    color: var(--fg-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .bar-track {
+    height: 22px;
+    background: var(--surface-alt);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .bar-row .val {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 0.75rem;
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .tab {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    background: none;
+    border: none;
+    color: var(--fg-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab:hover { color: var(--fg); }
+  .scatter-svg {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+  .pred-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 12px;
+  }
+  .pred-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    text-align: center;
+  }
+  .pred-card .img-placeholder {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--surface-alt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+  }
+  .pred-card .pred-info {
+    padding: 0.625rem 0.5rem;
+  }
+  .pred-card .pred-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .pred-card .pred-conf {
+    font-size: 0.6875rem;
+    color: var(--fg-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .pred-correct { border-left: 3px solid var(--success); }
+  .pred-wrong { border-left: 3px solid var(--danger); }
+  .legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: var(--fg-muted);
+    margin-top: 0.75rem;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .class-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+  }
+  .class-table th {
+    text-align: left;
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 2px solid var(--border);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--fg-muted);
+  }
+  .class-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+  .class-table tr:last-child td { border-bottom: none; }
+  .class-table .highlight { font-weight: 600; color: var(--accent); }
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+  }
+  .pill-good { background: var(--accent-light); color: var(--accent); }
+  .pill-warn { background: rgba(224,122,58,0.12); color: var(--warning); }
+  .pill-bad { background: rgba(193,41,46,0.12); color: var(--danger); }
+  footer {
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--border);
+    font-size: 0.75rem;
+    color: var(--fg-muted);
+    text-align: center;
+    margin-top: 1rem;
+  }
+  @media (max-width: 500px) {
+    .bar-row { grid-template-columns: 80px 1fr 40px; }
+    .metrics-row { grid-template-columns: repeat(2, 1fr); }
+    .pred-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+
+<header>
+  <h1>Bangladeshi AI Eye Doctor</h1>
+  <p>EfficientNet-B0 model performance across 10 eye disease classes &middot; 5,335 test images</p>
+</header>
+
+<div class="metrics-row">
+  <div class="metric-card">
+    <div class="label">Accuracy</div>
+    <div class="value accent">75.4%</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Weighted F1</div>
+    <div class="value">0.757</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Macro F1</div>
+    <div class="value">0.775</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">CV F1 (3-fold)</div>
+    <div class="value">0.705</div>
+  </div>
+</div>
+
+<section>
+  <h2>Per-Class Performance</h2>
+  <div class="tabs">
+    <button class="tab active" data-view="chart" onclick="switchView('chart')">F1 Chart</button>
+    <button class="tab" data-view="scatter" onclick="switchView('scatter')">Precision vs Recall</button>
+    <button class="tab" data-view="table" onclick="switchView('table')">Detail Table</button>
+  </div>
+  <div id="view-chart" class="chart-container">
+    <div class="bar-chart" id="f1-bars"></div>
+  </div>
+  <div id="view-scatter" class="chart-container" hidden>
+    <svg id="scatter-plot" class="scatter-svg" viewBox="0 0 500 380"></svg>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:var(--accent)"></span> Circle size = test support</span>
+    </div>
+  </div>
+  <div id="view-table" class="chart-container" hidden>
+    <div style="overflow-x:auto">
+      <table class="class-table" id="detail-table"></table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Class Distribution</h2>
+  <div class="chart-container">
+    <svg id="dist-chart" class="scatter-svg" viewBox="0 0 500 260"></svg>
+  </div>
+</section>
+
+<section>
+  <h2>Sample Predictions</h2>
+  <div class="legend" style="margin-bottom:0.75rem;margin-top:0">
+    <span><span class="legend-dot" style="background:var(--success)"></span> Correct</span>
+    <span><span class="legend-dot" style="background:var(--danger)"></span> Misclassified</span>
+  </div>
+  <div class="pred-grid" id="pred-grid"></div>
+</section>
+
+<footer>
+  Bangladeshi AI Eye Doctor &middot; EfficientNet-B0 &middot; 3-fold cross-validation &middot; 10 disease classes
+</footer>
+
+<script>
+const DATA = [
+  { name: "CSC",          full: "Central Serous Chorioretinopathy", precision: 0.497, recall: 0.970, f1: 0.658, support: 101 },
+  { name: "DR",           full: "Diabetic Retinopathy",            precision: 0.979, recall: 0.791, f1: 0.875, support: 1509 },
+  { name: "Disc Edema",   full: "Disc Edema",                     precision: 0.693, recall: 0.961, f1: 0.805, support: 127 },
+  { name: "Glaucoma",     full: "Glaucoma",                       precision: 0.745, recall: 0.600, f1: 0.665, support: 1349 },
+  { name: "Healthy",      full: "Healthy",                        precision: 0.753, recall: 0.746, f1: 0.749, support: 1024 },
+  { name: "Macular Scar", full: "Macular Scar",                   precision: 0.676, recall: 0.741, f1: 0.707, support: 444 },
+  { name: "Myopia",       full: "Myopia",                         precision: 0.571, recall: 0.854, f1: 0.684, support: 500 },
+  { name: "Pterygium",    full: "Pterygium",                      precision: 1.000, recall: 1.000, f1: 1.000, support: 17 },
+  { name: "Ret. Det.",    full: "Retinal Detachment",             precision: 0.728, recall: 0.984, f1: 0.837, support: 125 },
+  { name: "RP",           full: "Retinitis Pigmentosa",           precision: 0.624, recall: 0.993, f1: 0.767, support: 139 }
+];
+
+const PREDICTIONS = [
+  { file: "Healthy1.jpg",              truth: "Healthy",               pred: "Healthy",               conf: 0.599 },
+  { file: "Healthy2.jpg",              truth: "Healthy",               pred: "Healthy",               conf: 0.817 },
+  { file: "Healthy3.jpg",              truth: "Healthy",               pred: "Healthy",               conf: 0.787 },
+  { file: "Macular Scar1.jpg",         truth: "Macular Scar",          pred: "Macular Scar",          conf: 0.446 },
+  { file: "Macular Scar2.jpg",         truth: "Macular Scar",          pred: "Macular Scar",          conf: 0.766 },
+  { file: "Macular Scar3.jpg",         truth: "Macular Scar",          pred: "Glaucoma",              conf: 0.439 },
+  { file: "Retinitis Pigmentosa1.jpg", truth: "Retinitis Pigmentosa",  pred: "Retinitis Pigmentosa",  conf: 1.000 },
+  { file: "Retinitis Pigmentosa2.jpg", truth: "Retinitis Pigmentosa",  pred: "Retinitis Pigmentosa",  conf: 1.000 },
+  { file: "Retinitis Pigmentosa3.jpg", truth: "Retinitis Pigmentosa",  pred: "Retinitis Pigmentosa",  conf: 1.000 },
+];
+
+const FUNDUS = [
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Ccircle cx='40' cy='40' r='36' fill='%23d4a574'/%3E%3Ccircle cx='40' cy='40' r='28' fill='%23c4916a'/%3E%3Ccircle cx='32' cy='38' r='8' fill='%23e8c090' opacity='0.7'/%3E%3Cpath d='M20 40 Q30 35 40 40 Q50 45 60 40' stroke='%23993333' stroke-width='1.5' fill='none'/%3E%3Cpath d='M25 36 Q35 42 45 36' stroke='%23993333' stroke-width='1' fill='none'/%3E%3C/svg%3E"
+];
+
+function f1Color(v) {
+  if (v >= 0.85) return 'var(--success)';
+  if (v >= 0.7) return 'var(--warning)';
+  return 'var(--danger)';
+}
+
+function pillClass(v) {
+  if (v >= 0.85) return 'pill-good';
+  if (v >= 0.7) return 'pill-warn';
+  return 'pill-bad';
+}
+
+function buildF1Chart() {
+  const sorted = [...DATA].sort((a, b) => b.f1 - a.f1);
+  const container = document.getElementById('f1-bars');
+  container.innerHTML = sorted.map(d => `
+    <div class="bar-row">
+      <div class="name" title="${d.full}">${d.name}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${d.f1 * 100}%;background:${f1Color(d.f1)}"></div>
+      </div>
+      <div class="val" style="color:${f1Color(d.f1)}">${d.f1.toFixed(2)}</div>
+    </div>
+  `).join('');
+}
+
+function buildScatter() {
+  const svg = document.getElementById('scatter-plot');
+  const pad = { top: 30, right: 30, bottom: 45, left: 50 };
+  const w = 500, h = 380;
+  const iw = w - pad.left - pad.right, ih = h - pad.top - pad.bottom;
+  const maxS = Math.max(...DATA.map(d => d.support));
+
+  let html = '';
+  // grid
+  for (let v = 0.4; v <= 1.01; v += 0.1) {
+    const x = pad.left + ((v - 0.4) / 0.6) * iw;
+    const y = pad.top + (1 - (v - 0.4) / 0.6) * ih;
+    html += `<line x1="${pad.left}" y1="${y}" x2="${w - pad.right}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
+    html += `<line x1="${x}" y1="${pad.top}" x2="${x}" y2="${h - pad.bottom}" stroke="var(--border)" stroke-width="1"/>`;
+    html += `<text x="${x}" y="${h - pad.bottom + 16}" text-anchor="middle" font-size="10" fill="var(--fg-muted)">${v.toFixed(1)}</text>`;
+    html += `<text x="${pad.left - 8}" y="${y + 3}" text-anchor="end" font-size="10" fill="var(--fg-muted)">${v.toFixed(1)}</text>`;
+  }
+  // diagonal
+  html += `<line x1="${pad.left}" y1="${pad.top + ih}" x2="${pad.left + iw}" y2="${pad.top}" stroke="var(--border)" stroke-width="1" stroke-dasharray="4 4"/>`;
+  // axis labels
+  html += `<text x="${pad.left + iw / 2}" y="${h - 4}" text-anchor="middle" font-size="11" fill="var(--fg-muted)" font-family="var(--font-body)">Recall</text>`;
+  html += `<text x="12" y="${pad.top + ih / 2}" text-anchor="middle" font-size="11" fill="var(--fg-muted)" font-family="var(--font-body)" transform="rotate(-90 12 ${pad.top + ih / 2})">Precision</text>`;
+  // dots
+  DATA.forEach(d => {
+    const x = pad.left + ((d.recall - 0.4) / 0.6) * iw;
+    const y = pad.top + (1 - (d.precision - 0.4) / 0.6) * ih;
+    const r = 5 + 15 * (d.support / maxS);
+    html += `<circle cx="${x}" cy="${y}" r="${r}" fill="${f1Color(d.f1)}" opacity="0.6" stroke="var(--fg)" stroke-width="0.5"/>`;
+    const tx = x + r + 4, ty = y - 4;
+    html += `<text x="${tx}" y="${ty}" font-size="9" fill="var(--fg)" font-family="var(--font-body)" font-weight="500">${d.name}</text>`;
+  });
+  svg.innerHTML = html;
+}
+
+function buildTable() {
+  const table = document.getElementById('detail-table');
+  let html = `<thead><tr><th>Disease Class</th><th>Precision</th><th>Recall</th><th>F1 Score</th><th>Support</th><th>Rating</th></tr></thead><tbody>`;
+  const sorted = [...DATA].sort((a, b) => b.f1 - a.f1);
+  sorted.forEach(d => {
+    html += `<tr>
+      <td>${d.full}</td>
+      <td>${d.precision.toFixed(3)}</td>
+      <td>${d.recall.toFixed(3)}</td>
+      <td class="highlight">${d.f1.toFixed(3)}</td>
+      <td>${d.support}</td>
+      <td><span class="pill ${pillClass(d.f1)}">${d.f1 >= 0.85 ? 'Good' : d.f1 >= 0.7 ? 'Fair' : 'Weak'}</span></td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+function buildDistChart() {
+  const svg = document.getElementById('dist-chart');
+  const pad = { top: 20, right: 20, bottom: 50, left: 50 };
+  const w = 500, h = 260;
+  const iw = w - pad.left - pad.right, ih = h - pad.top - pad.bottom;
+  const maxV = Math.max(...DATA.map(d => d.support));
+  const n = DATA.length;
+  const bw = iw / n * 0.7;
+  const gap = iw / n * 0.3;
+
+  let html = '';
+  // y grid
+  for (let v = 0; v <= maxV; v += 400) {
+    const y = pad.top + (1 - v / maxV) * ih;
+    html += `<line x1="${pad.left}" y1="${y}" x2="${w - pad.right}" y2="${y}" stroke="var(--border)"/>`;
+    html += `<text x="${pad.left - 6}" y="${y + 3}" text-anchor="end" font-size="9" fill="var(--fg-muted)">${v}</text>`;
+  }
+  // bars
+  DATA.forEach((d, i) => {
+    const x = pad.left + i * (bw + gap) + gap / 2;
+    const bh = (d.support / maxV) * ih;
+    const y = pad.top + ih - bh;
+    html += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="3" fill="var(--accent)" opacity="0.75"/>`;
+    html += `<text x="${x + bw / 2}" y="${y - 5}" text-anchor="middle" font-size="8" fill="var(--fg-muted)" font-weight="600">${d.support}</text>`;
+    html += `<text x="${x + bw / 2}" y="${h - pad.bottom + 14}" text-anchor="middle" font-size="9" fill="var(--fg-muted)" font-family="var(--font-body)">${d.name}</text>`;
+  });
+  // baseline
+  html += `<line x1="${pad.left}" y1="${pad.top + ih}" x2="${w - pad.right}" y2="${pad.top + ih}" stroke="var(--fg-muted)" stroke-width="0.5"/>`;
+  svg.innerHTML = html;
+}
+
+function buildPredGrid() {
+  const grid = document.getElementById('pred-grid');
+  grid.innerHTML = PREDICTIONS.map(p => {
+    const correct = p.truth === p.pred;
+    return `
+      <div class="pred-card ${correct ? 'pred-correct' : 'pred-wrong'}">
+        <div class="img-placeholder">
+          <img src="${FUNDUS[0]}" alt="Fundus" width="64" height="64" style="opacity:0.6">
+        </div>
+        <div class="pred-info">
+          <div class="pred-label" style="color:${correct ? 'var(--success)' : 'var(--danger)'}">${p.pred}</div>
+          <div class="pred-conf">${(p.conf * 100).toFixed(1)}% confidence</div>
+          <div class="pred-conf" style="margin-top:2px;font-size:0.625rem">Truth: ${p.truth}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function switchView(view) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  ['chart', 'scatter', 'table'].forEach(v => {
+    document.getElementById('view-' + v).hidden = v !== view;
+  });
+}
+
+buildF1Chart();
+buildScatter();
+buildTable();
+buildDistChart();
+buildPredGrid();
+</script>
