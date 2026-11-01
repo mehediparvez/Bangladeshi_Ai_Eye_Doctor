@@ -77,10 +77,9 @@ Bangladeshi_Ai_Eye_Doctor/
 ├── final_model_metrics.json        # Evaluation metrics + predictions
 ├── model_dashboard.png             # Generated results dashboard
 │
-├── Eye Model Training code.ipynb   # Model training notebook
-├── eye2025 (4).ipynb               # Training notebook (alternate)
-├── 3_conversational_ai_ENHANCED.ipynb  # Conversational AI notebook
-├── synthetic_data_generation.ipynb # Patient query dataset generator
+├── 01_synthetic_data_generation.ipynb  # Step 1: patient query dataset generator
+├── 02_train_image_classifier.ipynb     # Step 2: model training (skipped by default)
+├── 03_conversational_ai.ipynb          # Step 3: conversational AI + Gradio app
 │
 ├── Trained model/                  # Cross-validation fold checkpoints
 │   ├── efficientnet_b0_fold1_best.pth
@@ -105,6 +104,16 @@ Bangladeshi_Ai_Eye_Doctor/
 │
 └── EyeDiseaseDetectionSubmissionDoc_FINAL_WITH_DIAGRAMS.docx
 ```
+
+## Notebook Run Order (Google Colab)
+
+| Step | Notebook | Notes |
+|------|----------|-------|
+| 1 | `01_synthetic_data_generation.ipynb` | Writes synthetic data to Drive |
+| 2 | `02_train_image_classifier.ipynb` | `RUN_TRAINING = False` by default: a trained model already exists. Set `True` to retrain (needs the full image dataset in `MyDrive/Bangladeshi_Ai_Eye_Doctor/eye_images`) |
+| 3 | `03_conversational_ai.ipynb` | Loads the model from Drive (seeded from the repo on first run) |
+
+Each notebook mounts Google Drive and stores files in `MyDrive/Bangladeshi_Ai_Eye_Doctor/{models,results,data}`, so they survive closing the Colab session.
 
 ## Installation
 
